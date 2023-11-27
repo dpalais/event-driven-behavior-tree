@@ -62,7 +62,7 @@ func add_node(bt_node : BTNode, position := Vector2.ZERO) -> BTGraphNode:
 	_nodes_reference[bt_node] = graph_node
 
 	graph_node.draggable = not debug_mode
-	graph_node.show_close = not debug_mode
+	#graph_node.show_close = not debug_mode
 
 	graph_node.delete_request.connect(_on_BTGraphNode_close_requested.bind(graph_node))
 
@@ -365,7 +365,7 @@ func _set_debug_mode(value : bool) -> void:
 		if child == null: continue
 
 		child.draggable = not debug_mode
-		child.show_close = not debug_mode
+		#child.show_close = not debug_mode
 
 		if debug_mode: continue
 
