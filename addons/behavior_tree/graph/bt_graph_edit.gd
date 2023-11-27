@@ -64,7 +64,7 @@ func add_node(bt_node : BTNode, position := Vector2.ZERO) -> BTGraphNode:
 	graph_node.draggable = not debug_mode
 	graph_node.show_close = not debug_mode
 
-	graph_node.close_request.connect(_on_BTGraphNode_close_requested.bind(graph_node))
+	graph_node.delete_request.connect(_on_BTGraphNode_close_requested.bind(graph_node))
 
 	return graph_node
 

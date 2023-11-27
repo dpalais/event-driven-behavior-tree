@@ -17,7 +17,7 @@ var bt_node : BTNode:
 
 
 func _ready() -> void:
-	close_request.connect(_on_close_request)
+	delete_request.connect(_on_close_request)
 	position_offset_changed.connect(_on_position_offset_changed)
 
 
