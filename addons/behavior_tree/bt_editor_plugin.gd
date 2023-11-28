@@ -2,23 +2,22 @@
 class_name BTEditorPlugin
 extends EditorPlugin
 
-
-
-var bt_node_resources : Array[BTNode]
-
-
-var _paths : Array[String] = [
-		"res://addons/behavior_tree",
-		]
+enum BTNodeType { COMPOSITE, LEAF }
+signal bt_node_type_selected(Array)
 
 var _editor : BTEditor = preload ("graph/editor.tscn").instantiate()
 var _bottom_panel_button : Button
 
 var _file_dialog : EditorFileDialog
 var _type_popup : PopupMenu
+var _composite_type_popup : PopupMenu
+var _leaf_type_popup : PopupMenu
 
 var _debugger : BTDebugger
 var _editor_interface : EditorInterface
+
+const _composite_submenu_name := "Composite"
+const _leaf_submenu_name := "Leaf"
 
 
 
@@ -37,8 +36,14 @@ func _enter_tree():
 
 	_type_popup = PopupMenu.new()
 	_type_popup.close_requested.connect(_on_TypePopup_close_requested)
-
-	_load_bt_resources()
+	_composite_type_popup = PopupMenu.new()
+	_composite_type_popup.name = _composite_submenu_name
+	_composite_type_popup.id_pressed.connect(_on_TypePopup_id_pressed.bind(BTNodeType.COMPOSITE))
+	_type_popup.add_child(_composite_type_popup)
+	_leaf_type_popup = PopupMenu.new()
+	_leaf_type_popup.name = _leaf_submenu_name
+	_leaf_type_popup.id_pressed.connect(_on_TypePopup_id_pressed.bind(BTNodeType.LEAF))
+	_type_popup.add_child(_leaf_type_popup)
 
 	_editor_interface = get_editor_interface()
 	var base_control = _editor_interface.get_base_control()
@@ -87,71 +92,53 @@ func request_bt_node_type(position : Vector2, has_leaves := true) -> BTNode:
 
 	_reload_type_popup(has_leaves)
 
-	var index : int = await _type_popup.index_pressed
+	var selection : Array = await bt_node_type_selected
 
-	if index == -1: return null
+	if selection == null: return null
 
-	return bt_node_resources[index].duplicate()
+	var known_nodes = _get_known_nodes()
+
+	var script: Script
+	var index : int = selection[1]
+	if selection[0] == BTNodeType.COMPOSITE:
+		script = known_nodes.composites[index]
+	else:
+		script = known_nodes.leaves[index]
+
+	return script.new()
 
 
 
-func _load_bt_resources():
-	bt_node_resources = []
+func _get_known_nodes() -> Resource:
+	return load("res://addons/behavior_tree/known_nodes.tres")
 
-	for path in _paths:
-		_load_resources_in_folder(path)
-
-
-func _load_resources_in_folder(folder_path : String):
-	if not DirAccess.dir_exists_absolute(folder_path):
-		push_error("Behavior Tree: path %s was not found." %folder_path)
-		return
-
-	var dir = DirAccess.open(folder_path)
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-
-	while(file_name!=""):
-		var full_path = folder_path+"/"+file_name
-
-		if dir.current_is_dir():
-			_load_resources_in_folder(full_path)
-			file_name = dir.get_next()
-			continue
-
-		if not ResourceLoader.exists(full_path):
-			file_name = dir.get_next()
-			continue
-
-		var file = load(full_path)
-
-		if not file.has_method("new"):
-			file_name = dir.get_next()
-			continue
-
-		var resource = file.new()
-
-		if (resource as BTNode) == null:
-			file_name = dir.get_next()
-			continue
-
-		var is_valid_type : bool = resource.get_bt_type_name() != ""
-
-		if is_valid_type:
-			bt_node_resources.append(resource)
-
-		file_name = dir.get_next()
 
 
 func _reload_type_popup(has_leaves : bool) -> void:
 	_type_popup.clear()
+	_composite_type_popup.clear()
+	_leaf_type_popup.clear()
 
-	for bt_node in bt_node_resources:
-		var node_name = bt_node.get_bt_type_name()
+	var known_nodes := _get_known_nodes()
+	var composites : Array = known_nodes.composites
+	var leaves : Array = known_nodes.leaves
 
-		if bt_node is BTLeaf and not has_leaves: continue
+	var idx := 0
+	while idx + 1 < len(composites):
+		var node_name : String = composites[idx]
+		#var node_script : Script = composites[idx + 1]
+		_composite_type_popup.add_item(node_name, idx + 1)
+		idx += 2
+	_type_popup.add_submenu_item(_composite_submenu_name, _composite_submenu_name, 0)
 
-		_type_popup.add_item(node_name)
+	if has_leaves:
+		idx = 0
+		while idx + 1 < len(leaves):
+			var node_name : String = leaves[idx]
+			#var node_script : Script = leaves[idx + 1]
+			_leaf_type_popup.add_item(node_name, idx + 1)
+			idx += 2
+		_type_popup.add_submenu_item(_leaf_submenu_name, _leaf_submenu_name, 1)
 
 
 
@@ -159,8 +146,12 @@ func _on_FileDialog_canceled() -> void:
 	_file_dialog.file_selected.emit("")
 
 
+func _on_TypePopup_id_pressed(id : int, type : BTNodeType) -> void:
+	bt_node_type_selected.emit([type, id])
+
+
 func _on_TypePopup_close_requested() -> void:
-	_type_popup.index_pressed.emit(-1)
+	bt_node_type_selected.emit(null)
 
 
 func _on_Debugger_debug_tree(data : Array) -> void:

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=12 format=3 uid="uid://3pkm2ai0dbpj"]
+
+[ext_resource type="Script" path="res://addons/behavior_tree/composites/bt_selector.gd" id="1_fwybm"]
+[ext_resource type="Script" path="res://addons/behavior_tree/bt_known_nodes.gd" id="1_knvnk"]
+[ext_resource type="Script" path="res://addons/behavior_tree/composites/bt_sequence.gd" id="2_ed55u"]
+[ext_resource type="Script" path="res://addons/behavior_tree/composites/bt_parallel.gd" id="3_b5kxa"]
+[ext_resource type="Script" path="res://addons/behavior_tree/composites/bt_utility_selector.gd" id="4_yi6ys"]
+[ext_resource type="Script" path="res://addons/behavior_tree/composites/bt_utility_sequence.gd" id="5_3xvva"]
+[ext_resource type="Script" path="res://addons/behavior_tree/conditions/bt_blackboard_is.gd" id="6_obx2h"]
+[ext_resource type="Script" path="res://addons/behavior_tree/leaves/bt_blackboard_set.gd" id="7_2mayf"]
+[ext_resource type="Script" path="res://addons/behavior_tree/leaves/bt_callable.gd" id="8_8d7vy"]
+[ext_resource type="Script" path="res://addons/behavior_tree/leaves/bt_subtree.gd" id="9_1fhox"]
+[ext_resource type="Script" path="res://addons/behavior_tree/utilities/bt_blackboard_value.gd" id="11_uvhub"]
+
+[resource]
+script = ExtResource("1_knvnk")
+composites = ["Selector", ExtResource("1_fwybm"), "Sequence", ExtResource("2_ed55u"), "Parallel", ExtResource("3_b5kxa"), "Utility Selector", ExtResource("4_yi6ys"), "Utility Sequence", ExtResource("5_3xvva")]
+conditions = ["Blackboard Is", ExtResource("6_obx2h")]
+leaves = ["Blackboard Set", ExtResource("7_2mayf"), "Callable", ExtResource("8_8d7vy"), "Subtree", ExtResource("9_1fhox")]
+utilities = ["Blackboard Value", ExtResource("11_uvhub")]
