@@ -18,6 +18,7 @@ enum OpenTreeMode{
 
 const _PORT := 0
 const _GraphNode = preload("graph_node.tscn")
+const _GraphValue = preload("graph_value.tscn")
 
 const _UNTICKED_COLOR := Color.WHITE
 const _FAILURE_COLOR := Color.RED
@@ -40,6 +41,8 @@ var _graph_pages : Array[Array]
 
 
 func _ready() -> void:
+	add_valid_connection_type(BTGraphItem._SLOT_TYPE_BTNODE, BTGraphItem._SLOT_TYPE_BTNODE)
+	add_valid_connection_type(BTGraphItem._SLOT_TYPE_BTVALUE, BTGraphItem._SLOT_TYPE_BTVALUE)
 	connection_request.connect(_on_connection_request)
 	disconnection_request.connect(_on_disconnection_request)
 	node_selected.connect(_on_node_selected)
@@ -52,21 +55,25 @@ func _ready() -> void:
 
 
 
-func add_node(bt_node : BTNode, position := Vector2.ZERO) -> BTGraphNode:
-	var graph_node := _GraphNode.instantiate() as BTGraphNode
-	add_child(graph_node)
+func add_node(bt_item : BTItem, position := Vector2.ZERO) -> BTGraphNode:
+	var graph_item : BTGraphItem
+	if bt_item is BTNode:
+		graph_item = _GraphNode.instantiate() as BTGraphNode
+	elif bt_item is BTValue:
+		graph_item = _GraphValue.instantiate() as BTGraphValue
+	add_child(graph_item)
 
-	graph_node.bt_node = bt_node
-	graph_node.position_offset = position
+	graph_item.bt_item = bt_item
+	graph_item.position_offset = position
 
-	_nodes_reference[bt_node] = graph_node
+	_nodes_reference[bt_item] = graph_item
 
-	graph_node.draggable = not debug_mode
+	graph_item.draggable = not debug_mode
 	#graph_node.show_close = not debug_mode
 
-	graph_node.delete_request.connect(_on_BTGraphNode_close_requested.bind(graph_node))
+	graph_item.delete_request.connect(_on_BTGraphNode_close_requested.bind(graph_item))
 
-	return graph_node
+	return graph_item
 
 
 func open_tree(mode : OpenTreeMode, tree_data = null) -> void:
@@ -135,10 +142,9 @@ func open_tree(mode : OpenTreeMode, tree_data = null) -> void:
 func compile_tree() -> BTNode:
 	var root : BTNode
 	for child in get_children():
-		child = child as BTGraphNode
-		if child == null: continue
+		if not child is BTGraphNode: continue
 
-		var bt_node = child.bt_node
+		var bt_node = child.bt_item
 
 		if bt_node is BTComposite:
 			if bt_node.children.is_empty():
@@ -200,7 +206,7 @@ func _draw_debug(results : Dictionary) -> void:
 	for child in get_children():
 		child = child as BTGraphNode
 
-		var index = child.bt_node.tree_index
+		var index = child.bt_item.tree_index
 		var result = results.get(index)
 
 		var color : Color
@@ -232,56 +238,69 @@ func _load_node_recursive(bt_node : BTNode) -> void:
 func _add_bt_parent_by_name(parent_name : String, child_name : String) -> void:
 	var parent := get_node(parent_name) as BTGraphNode
 	var child := get_node(child_name) as BTGraphNode
-	child.bt_node.parent = parent.bt_node
+	child.bt_item.parent = parent.bt_item
 
 
 func _draw_connections(graph_node : BTGraphNode):
-	var bt_node := graph_node.bt_node
-	var parent := bt_node.parent
+	var bt_item := graph_node.bt_item
+	if bt_item is BTNode:
+		var bt_node : BTNode = bt_item
+		var parent := bt_node.parent
 
-	if parent != null:
-		var graph_parent = _nodes_reference[parent]
-		connect_node(graph_parent.name, _PORT, graph_node.name, _PORT)
+		if parent != null:
+			var graph_parent = _nodes_reference[parent]
+			connect_node(graph_parent.name, _PORT, graph_node.name, _PORT)
 
-	if not bt_node is BTComposite: return
-	bt_node = bt_node as BTComposite
+		if not bt_node is BTComposite: return
+		bt_node = bt_node as BTComposite
 
-	for child in bt_node.children:
-		var graph_child = _nodes_reference[child]
-		connect_node(graph_node.name, _PORT, graph_child.name, _PORT)
+		for child in bt_node.children:
+			var graph_child = _nodes_reference[child]
+			connect_node(graph_node.name, _PORT, graph_child.name, _PORT)
 
 
-func _clear_node_connections(node : BTGraphNode, parent_only := false) -> void:
+func _clear_node_connections(node : BTGraphItem, parent_only := false) -> void:
 	var connections = get_connection_list()
+
 	for connection in connections:
-		var clear_parent = connection.to == node.name
-		var clear_children = not parent_only and connection.from == node.name
+		var clear_parent = connection.to_node == node.name
+		var clear_children = not parent_only and connection.from_node == node.name
 		if clear_parent or clear_children:
-			disconnect_node(connection.from, connection.from_port, connection.to, connection.to_port)
+			disconnect_node(connection.from_node, connection.from_port, connection.to_node, connection.to_port)
 
 
 
-func _on_connection_request(from : String, from_slot : int, to : String, to_slot : int) -> void:
+func _on_connection_request(from_node : String, from_port : int, to_node : String, to_port : int) -> void:
 	if debug_mode: return
 
-	var graph_node := get_node(to) as BTGraphNode
+	var graph_node := get_node(to_node) as BTGraphNode
 
 	_clear_node_connections(graph_node, true)
 
-	connect_node(from, from_slot, to, to_slot)
-	_add_bt_parent_by_name(from, to)
+	var from : GraphNode = get_node(from_node)
+	var from_type := from.get_output_port_type(from_port)
+	var to : GraphNode = get_node(to_node)
+	var to_type := to.get_input_port_type(to_port)
+	
+	if is_valid_connection_type(from_type, to_type):
+		connect_node(from_node, from_port, to_node, to_port)
+
+	if from is BTGraphNode and to is BTGraphNode:
+		_add_bt_parent_by_name(from_node, to_node)
+	if from is BTGraphValue and to is BTGraphNode:
+		pass
 
 
-func _on_disconnection_request(from : String, from_slot : int, to : String, to_slot : int) -> void:
+func _on_disconnection_request(from_node : String, from_slot : int, to_node : String, to_slot : int) -> void:
 	if debug_mode: return
 
-	disconnect_node(from, from_slot, to, to_slot)
-	var node := get_node(to) as BTGraphNode
-	node.bt_node.parent = null
+	disconnect_node(from_node, from_slot, to_node, to_slot)
+	var node := get_node(to_node) as BTGraphNode
+	node.bt_item.parent = null
 
 
 func _on_node_selected(node : GraphNode) -> void:
-	plugin.inspect_object(node.bt_node)
+	plugin.inspect_object(node.bt_item)
 
 
 func _on_connection_to_empty(from : String, from_slot : int, release_position : Vector2) -> void:
@@ -315,16 +334,16 @@ func _on_delete_nodes_request(nodes : Array) -> void:
 
 	for child in get_children():
 		if nodes.has(child.name):
-			child.delete_node()
+			child.delete_item()
 			_clear_node_connections(child)
-			_nodes_reference.erase(child.bt_node)
+			_nodes_reference.erase(child.bt_item)
 
 
 func _on_popup_request(position : Vector2) -> void:
 	if debug_mode: return
 
 	var mouse_position := get_viewport().get_mouse_position()
-	var bt_node : BTNode = await plugin.request_bt_node_type(mouse_position)
+	var bt_node : BTItem = await plugin.request_bt_node_type(mouse_position)
 
 	if bt_node == null: return
 

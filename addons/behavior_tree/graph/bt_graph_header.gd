@@ -5,6 +5,7 @@ extends ColorRect
 
 
 var _node : BTGraphNode
+var _value_slots : Array[Node]
 
 
 func _ready() -> void:

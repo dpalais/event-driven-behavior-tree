@@ -1,6 +1,6 @@
 @tool
 extends BTUtility
-class_name BTBlackboardValue
+class_name BTBlackboardUtility
 
 
 

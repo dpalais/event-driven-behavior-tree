@@ -5,3 +5,4 @@ extends Resource
 @export var conditions: Array
 @export var leaves: Array
 @export var utilities: Array
+@export var values: Array

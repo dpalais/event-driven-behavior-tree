@@ -44,13 +44,12 @@ func _save(path := "") -> void:
 
 	if compiled_tree == null: return
 
-	if path == "":
+	if path.is_empty():
 		path = await plugin.request_file_path(false)
 
-	if path == "": return
-
-	ResourceSaver.save(compiled_tree, path)
-	_graph_edit.current_path = path
+	if not path.is_empty():
+		ResourceSaver.save(compiled_tree, path)
+		_graph_edit.current_path = path
 
 
 func _on_SaveButton_pressed() -> void:

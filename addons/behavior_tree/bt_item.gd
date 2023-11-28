@@ -30,6 +30,8 @@ enum BTUtilityCompoundMode{
 		name = value
 		emit_changed()
 
+var graph_position : Vector2:
+	set = _set_graph_position
 
 
 func _init() -> void:
@@ -44,3 +46,16 @@ func get_bt_type_name() -> String:
 
 func _get_bt_type_name() -> String:
 	return ""
+
+
+func _set_graph_position(value : Vector2) -> void:
+	graph_position = value
+
+	if self is BTNode:
+		if self.parent != null:
+			self.parent.reorder_children()
+		else:
+			self.sibling_index = -1
+
+	emit_changed()
+

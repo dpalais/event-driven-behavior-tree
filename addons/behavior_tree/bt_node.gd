@@ -20,8 +20,6 @@ signal interrupted(agent, try_abort, trigger_child)
 
 var parent : BTComposite:
 	set = _set_parent
-var graph_position : Vector2:
-	set = _set_graph_position
 
 var root : BTNode = null
 
@@ -284,6 +282,12 @@ func _on_interrupted(agent : BTAgent, try_abort : bool, trigger_child : BTNode =
 
 
 
+func _get_value_slots() -> Array:
+	#return ["position", "color"]
+	return []
+
+
+
 func _set_utilities(value : Array[BTUtility]) -> void:
 	for utility in utilities:
 		if utility == null: continue
@@ -344,16 +348,6 @@ func _set_parent(value : BTComposite) -> void:
 
 	emit_changed()
 
-
-func _set_graph_position(value : Vector2) -> void:
-	graph_position = value
-
-	if parent != null:
-		parent.reorder_children()
-	else:
-		sibling_index = -1
-
-	emit_changed()
 
 
 func _set_sibling_index(value):

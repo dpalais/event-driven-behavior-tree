@@ -2,7 +2,7 @@
 class_name BTEditorPlugin
 extends EditorPlugin
 
-enum BTNodeType { COMPOSITE, LEAF }
+enum BTNodeType { COMPOSITE, LEAF, VALUE }
 signal bt_node_type_selected(Array)
 
 var _editor : BTEditor = preload ("graph/editor.tscn").instantiate()
@@ -12,12 +12,14 @@ var _file_dialog : EditorFileDialog
 var _type_popup : PopupMenu
 var _composite_type_popup : PopupMenu
 var _leaf_type_popup : PopupMenu
+var _value_type_popup : PopupMenu
 
 var _debugger : BTDebugger
 var _editor_interface : EditorInterface
 
 const _composite_submenu_name := "Composite"
 const _leaf_submenu_name := "Leaf"
+const _value_submenu_name := "Value"
 
 
 
@@ -40,11 +42,16 @@ func _enter_tree():
 	_composite_type_popup.name = _composite_submenu_name
 	_composite_type_popup.id_pressed.connect(_on_TypePopup_id_pressed.bind(BTNodeType.COMPOSITE))
 	_type_popup.add_child(_composite_type_popup)
+
 	_leaf_type_popup = PopupMenu.new()
 	_leaf_type_popup.name = _leaf_submenu_name
 	_leaf_type_popup.id_pressed.connect(_on_TypePopup_id_pressed.bind(BTNodeType.LEAF))
 	_type_popup.add_child(_leaf_type_popup)
 
+	_value_type_popup = PopupMenu.new()
+	_value_type_popup.name = _value_submenu_name
+	_value_type_popup.id_pressed.connect(_on_TypePopup_id_pressed.bind(BTNodeType.VALUE))
+	_type_popup.add_child(_value_type_popup)
 	_editor_interface = get_editor_interface()
 	var base_control = _editor_interface.get_base_control()
 	base_control.add_child(_file_dialog)
@@ -59,6 +66,7 @@ func _exit_tree():
 
 	_file_dialog.queue_free()
 	_type_popup.queue_free()
+	_editor.queue_free()
 
 
 
@@ -86,7 +94,7 @@ func request_file_path(load_mode : bool) -> String:
 	return path
 
 
-func request_bt_node_type(position : Vector2, has_leaves := true) -> BTNode:
+func request_bt_node_type(position : Vector2, has_leaves := true) -> BTItem:
 	_type_popup.visible = true
 	_type_popup.position = position
 
@@ -102,8 +110,10 @@ func request_bt_node_type(position : Vector2, has_leaves := true) -> BTNode:
 	var index : int = selection[1]
 	if selection[0] == BTNodeType.COMPOSITE:
 		script = known_nodes.composites[index]
-	else:
+	elif selection[0] == BTNodeType.LEAF:
 		script = known_nodes.leaves[index]
+	elif selection[0] == BTNodeType.VALUE:
+		script = known_nodes.values[index]
 
 	return script.new()
 
@@ -118,10 +128,12 @@ func _reload_type_popup(has_leaves : bool) -> void:
 	_type_popup.clear()
 	_composite_type_popup.clear()
 	_leaf_type_popup.clear()
+	_value_type_popup.clear()
 
 	var known_nodes := _get_known_nodes()
 	var composites : Array = known_nodes.composites
 	var leaves : Array = known_nodes.leaves
+	var values : Array = known_nodes.values
 
 	var idx := 0
 	while idx + 1 < len(composites):
@@ -129,7 +141,7 @@ func _reload_type_popup(has_leaves : bool) -> void:
 		#var node_script : Script = composites[idx + 1]
 		_composite_type_popup.add_item(node_name, idx + 1)
 		idx += 2
-	_type_popup.add_submenu_item(_composite_submenu_name, _composite_submenu_name, 0)
+	_type_popup.add_submenu_item(_composite_submenu_name, _composite_submenu_name)
 
 	if has_leaves:
 		idx = 0
@@ -138,7 +150,15 @@ func _reload_type_popup(has_leaves : bool) -> void:
 			#var node_script : Script = leaves[idx + 1]
 			_leaf_type_popup.add_item(node_name, idx + 1)
 			idx += 2
-		_type_popup.add_submenu_item(_leaf_submenu_name, _leaf_submenu_name, 1)
+		_type_popup.add_submenu_item(_leaf_submenu_name, _leaf_submenu_name)
+
+	idx = 0
+	while idx + 1 < len(values):
+		var node_name : String = values[idx]
+		#var node_script : Script = values[idx + 1]
+		_value_type_popup.add_item(node_name, idx + 1)
+		idx += 2
+	_type_popup.add_submenu_item(_value_submenu_name, _value_submenu_name)
 
 
 

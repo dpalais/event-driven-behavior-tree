@@ -57,5 +57,4 @@ text = "New"
 layout_mode = 2
 size_flags_vertical = 3
 right_disconnects = true
-arrange_nodes_button_hidden = true
 script = ExtResource("2_xfej3")
