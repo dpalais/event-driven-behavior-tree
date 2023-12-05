@@ -81,6 +81,11 @@ func tick():
 		_running_leaves[0].tick(_agent)
 
 
+func abort():
+	if not _running_leaves.is_empty():
+		_running_leaves.front()._abort(_agent)
+
+
 func has_node_memory(node : BTNode) -> bool:
 	return _running_nodes_memory.has(node)
 

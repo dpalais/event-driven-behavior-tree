@@ -4,6 +4,9 @@ extends Node
 
 
 
+signal tree_result_reported(agent, result)
+
+
 @export var target_tree : BTNode
 
 
@@ -30,6 +33,11 @@ func tick():
 	active_tree = null
 
 	_running_tree.result_reported.disconnect(_on_tree_result_reported)
+
+
+func abort():
+	_running_tree.abort()
+	tree_result_reported.emit(self, BTItem.BTState.FAILURE)
 
 
 func set_active_subtree(subtree : BTRunningTree, subtree_node : BTNode = null) -> void:
@@ -77,17 +85,18 @@ func register_debug_return(node_index : int, result : BTItem.BTState) -> void:
 
 
 
-func _on_tree_result_reported(_agent : BTAgent, result : BTItem.BTState) -> void:
+func _on_tree_result_reported(agent : BTAgent, result : BTItem.BTState) -> void:
 	if result != BTItem.BTState.RUNNING:
 		_running_tree.clear()
 
 
 	if OS.is_debug_build() and debug:
 		var debug_values = _running_tree.get_debug_return()
-
 		EngineDebugger.send_message(BTDebugger.DEBUG_TREE_MESSAGE, debug_values)
 
 		_running_tree.clear_debug_return()
+
+	tree_result_reported.emit(agent, result)
 
 
 
