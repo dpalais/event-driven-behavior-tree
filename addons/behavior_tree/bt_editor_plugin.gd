@@ -109,17 +109,17 @@ func request_bt_node_type(position : Vector2, has_leaves := true) -> BTItem:
 	var script: Script
 	var index : int = selection[1]
 	if selection[0] == BTNodeType.COMPOSITE:
-		script = known_nodes.composites[index]
+		script = known_nodes.get_composite_nodes()[index]
 	elif selection[0] == BTNodeType.LEAF:
-		script = known_nodes.leaves[index]
+		script = known_nodes.get_leaf_nodes()[index]
 	elif selection[0] == BTNodeType.VALUE:
-		script = known_nodes.values[index]
+		script = known_nodes.get_value_nodes()[index]
 
 	return script.new()
 
 
 
-func _get_known_nodes() -> Resource:
+func _get_known_nodes() -> BTKnownNodes:
 	return load("res://addons/behavior_tree/known_nodes.tres")
 
 
@@ -131,9 +131,9 @@ func _reload_type_popup(has_leaves : bool) -> void:
 	_value_type_popup.clear()
 
 	var known_nodes := _get_known_nodes()
-	var composites : Array = known_nodes.composites
-	var leaves : Array = known_nodes.leaves
-	var values : Array = known_nodes.values
+	var composites : Array = known_nodes.get_composite_nodes()
+	var leaves : Array = known_nodes.get_leaf_nodes()
+	var values : Array = known_nodes.get_value_nodes()
 
 	var idx := 0
 	while idx + 1 < len(composites):
@@ -160,6 +160,7 @@ func _reload_type_popup(has_leaves : bool) -> void:
 		idx += 2
 	_type_popup.add_submenu_item(_value_submenu_name, _value_submenu_name)
 
+	_type_popup.add_item("Load")
 
 
 func _on_FileDialog_canceled() -> void:
